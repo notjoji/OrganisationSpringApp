@@ -1,6 +1,7 @@
 package com.notjoji.OrganisationApp.services;
 
 import com.notjoji.OrganisationApp.model.dto.OrganisationDTO;
+import com.notjoji.OrganisationApp.model.dto.OrganisationNodeDTO;
 import com.notjoji.OrganisationApp.model.entity.Employee;
 import com.notjoji.OrganisationApp.model.entity.Organisation;
 import com.notjoji.OrganisationApp.model.mappers.OrganisationMapper;
@@ -10,6 +11,7 @@ import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -75,5 +77,43 @@ public class OrganisationService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public OrganisationNodeDTO getTree() {
+        List<Organisation> organisationsList = organisationRepo.findAll();
+
+        if (organisationsList.isEmpty())
+            return null;
+
+        OrganisationNodeDTO root = new OrganisationNodeDTO();
+        root.setId((long)0);
+        root.setName("Все организации");
+
+        List<OrganisationNodeDTO> organisationNodes = new ArrayList<>();
+
+        for (Organisation organisation:organisationsList) {
+            OrganisationNodeDTO organisationNodeDTO = new OrganisationNodeDTO();
+            organisationNodeDTO.setId(organisation.getId());
+            organisationNodeDTO.setName(organisation.getName());
+            if (organisation.getBaseOrganisation() != null)
+                organisationNodeDTO.setBaseId(organisation.getBaseOrganisation().getId());
+            organisationNodes.add(organisationNodeDTO);
+        }
+
+        for (OrganisationNodeDTO organisationNode:organisationNodes) {
+            List<OrganisationNodeDTO> children = organisationNodes
+                    .stream()
+                    .filter(x -> x.getBaseId() != null)
+                    .filter(x -> x.getBaseId().equals(organisationNode.getId()))
+                    .collect(Collectors.toList());
+            organisationNode.setChildren(children);
+        }
+
+        root.setChildren(organisationNodes
+                .stream()
+                .filter(x -> x.getBaseId() == null)
+                .collect(Collectors.toList()));
+
+        return root;
     }
 }

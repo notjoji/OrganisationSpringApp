@@ -1,6 +1,7 @@
 package com.notjoji.OrganisationApp.controllers;
 
 import com.notjoji.OrganisationApp.model.dto.OrganisationDTO;
+import com.notjoji.OrganisationApp.model.dto.OrganisationNodeDTO;
 import com.notjoji.OrganisationApp.services.OrganisationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -52,6 +53,15 @@ public class OrganisationController {
     public ResponseEntity<?> delete(@PathVariable("id") Long id) {
         return organisationService.delete(id)
                 ? new ResponseEntity<>(HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/tree")
+    public ResponseEntity<OrganisationNodeDTO> getTree() {
+        OrganisationNodeDTO tree = organisationService.getTree();
+
+        return tree != null
+                ? new ResponseEntity<>(tree, HttpStatus.OK)
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

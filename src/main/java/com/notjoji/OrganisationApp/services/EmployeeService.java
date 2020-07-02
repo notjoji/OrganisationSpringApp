@@ -1,6 +1,7 @@
 package com.notjoji.OrganisationApp.services;
 
 import com.notjoji.OrganisationApp.model.dto.EmployeeDTO;
+import com.notjoji.OrganisationApp.model.dto.EmployeeNodeDTO;
 import com.notjoji.OrganisationApp.model.entity.Employee;
 import com.notjoji.OrganisationApp.model.entity.Organisation;
 import com.notjoji.OrganisationApp.model.mappers.EmployeeMapper;
@@ -10,6 +11,7 @@ import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -75,5 +77,37 @@ public class EmployeeService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public EmployeeNodeDTO getTree(Long organisationId) {
+        List<Employee> employeeList = employeeRepo.findAll()
+                .stream()
+                .filter(x -> x.getOrganisation().getId().equals(organisationId))
+                .collect(Collectors.toList());
+
+        if (employeeList.isEmpty())
+            return null;
+
+        List<EmployeeNodeDTO> employeeNodes = new ArrayList<>();
+
+        for (Employee employee:employeeList) {
+            EmployeeNodeDTO employeeNodeDTO = new EmployeeNodeDTO();
+            employeeNodeDTO.setId(employee.getId());
+            employeeNodeDTO.setName(employee.getName());
+            if (employee.getSupervisor() != null)
+                employeeNodeDTO.setSupervisorId(employee.getSupervisor().getId());
+            employeeNodes.add(employeeNodeDTO);
+        }
+
+        for (EmployeeNodeDTO emloyeeNode:employeeNodes) {
+            List<EmployeeNodeDTO> children = employeeNodes
+                    .stream()
+                    .filter(x -> x.getSupervisorId() != null)
+                    .filter(x -> x.getSupervisorId().equals(emloyeeNode.getId()))
+                    .collect(Collectors.toList());
+            emloyeeNode.setChildren(children);
+        }
+
+        return employeeNodes.get(0);
     }
 }

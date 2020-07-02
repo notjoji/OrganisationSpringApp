@@ -1,6 +1,7 @@
 package com.notjoji.OrganisationApp.controllers;
 
 import com.notjoji.OrganisationApp.model.dto.EmployeeDTO;
+import com.notjoji.OrganisationApp.model.dto.EmployeeNodeDTO;
 import com.notjoji.OrganisationApp.services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -52,6 +53,15 @@ public class EmployeeController {
     public ResponseEntity<?> delete(@PathVariable("id") Long id) {
         return employeeService.delete(id)
                 ? new ResponseEntity<>(HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/tree/{id}")
+    public ResponseEntity<EmployeeNodeDTO> getTreeByOrganisationId(@PathVariable("id") Long id) {
+        EmployeeNodeDTO tree = employeeService.getTree(id);
+
+        return tree != null
+                ? new ResponseEntity<>(tree, HttpStatus.OK)
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }
