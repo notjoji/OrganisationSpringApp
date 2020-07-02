@@ -1,30 +1,25 @@
 package com.notjoji.OrganisationApp.controllers;
 
-import com.notjoji.OrganisationApp.entity.Employee;
-import com.notjoji.OrganisationApp.repo.EmployeeRepo;
-import org.springframework.beans.BeanUtils;
+import com.notjoji.OrganisationApp.model.dto.EmployeeDTO;
+import com.notjoji.OrganisationApp.model.dto.EmployeeNodeDTO;
+import com.notjoji.OrganisationApp.services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("api/employees")
 public class EmployeeController {
-    private EmployeeRepo employeeRepo;
-
     @Autowired
-    public EmployeeController(EmployeeRepo employeeRepo) {
-        this.employeeRepo = employeeRepo;
-    }
+    private EmployeeService employeeService;
 
     @GetMapping
-    public ResponseEntity<List<Employee>> getAll() {
-        List<Employee> employees = employeeRepo.findAll();
+    public ResponseEntity<List<EmployeeDTO>> getAll() {
+        List<EmployeeDTO> employees = employeeService.getAll();
 
         return employees != null && !employees.isEmpty()
                 ? new ResponseEntity<>(employees, HttpStatus.OK)
@@ -32,53 +27,41 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Employee> getOne(@PathVariable("id") Long id) {
-        Optional<Employee> getEmployee = employeeRepo.findById(id);
-        return getEmployee.isPresent()
-            ? new ResponseEntity<>(getEmployee.get(), HttpStatus.OK)
+    public ResponseEntity<EmployeeDTO> getById(@PathVariable("id") Long id) {
+        final EmployeeDTO employee = employeeService.getById(id);
+
+        return employee != null
+            ? new ResponseEntity<>(employee, HttpStatus.OK)
             : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> create(@RequestBody Employee employee) {
-        Long id = employee.getSupervisorId();
-        if (id != null) {
-            Optional<Employee> supervisor = employeeRepo.findById(id);
-            if (!supervisor.isPresent()) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-        }
-        employeeRepo.save(employee);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    public ResponseEntity<?> create(@RequestBody EmployeeDTO employeeDTO) {
+        return employeeService.add(employeeDTO)
+                ? new ResponseEntity<>(HttpStatus.CREATED)
+                : new ResponseEntity<>(HttpStatus.CONFLICT);
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> update(@PathVariable("id") Long id, @RequestBody Employee employee) {
-        Optional<Employee> updEmployee = employeeRepo.findById(id);
-        if (!updEmployee.isPresent())
-            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        Long supervisorId = employee.getSupervisorId();
-        if (supervisorId != null) {
-            Optional<Employee> supervisor = employeeRepo.findById(supervisorId);
-            if (!supervisor.isPresent() || supervisorId.equals(id))
-                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        }
-        Employee updated = updEmployee.get();
-        BeanUtils.copyProperties(employee, updated, "id");
-        employeeRepo.save(updated);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<?> update(@PathVariable("id") Long id, @RequestBody EmployeeDTO employeeDTO) {
+        return employeeService.update(id, employeeDTO)
+                ? new ResponseEntity<>(HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> delete(@PathVariable("id") Long id) {
-        try {
-            Optional<Employee> delEmployee = employeeRepo.findById(id);
-            if (!delEmployee.isPresent())
-                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-            employeeRepo.delete(delEmployee.get());
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_MODIFIED);
-        }
+        return employeeService.delete(id)
+                ? new ResponseEntity<>(HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/tree/{id}")
+    public ResponseEntity<EmployeeNodeDTO> getTreeByOrganisationId(@PathVariable("id") Long id) {
+        EmployeeNodeDTO tree = employeeService.getTree(id);
+
+        return tree != null
+                ? new ResponseEntity<>(tree, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }
