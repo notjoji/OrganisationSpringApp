@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("api/employees")
 public class EmployeeController {
@@ -40,6 +41,13 @@ public class EmployeeController {
 
     @PostMapping("/add")
     public ResponseEntity<?> create(@RequestBody Employee employee) {
+        Long id = employee.getSupervisorId();
+        if (id != null) {
+            Optional<Employee> supervisor = employeeRepo.findById(id);
+            if (!supervisor.isPresent()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
         employeeRepo.save(employee);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -49,22 +57,28 @@ public class EmployeeController {
         Optional<Employee> updEmployee = employeeRepo.findById(id);
         if (!updEmployee.isPresent())
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        Long supervisorId = employee.getSupervisorId();
+        if (supervisorId != null) {
+            Optional<Employee> supervisor = employeeRepo.findById(supervisorId);
+            if (!supervisor.isPresent() || supervisorId.equals(id))
+                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        }
         Employee updated = updEmployee.get();
         BeanUtils.copyProperties(employee, updated, "id");
         employeeRepo.save(updated);
-        return new ResponseEntity<>(employee, HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> delete(@PathVariable("id") Long id) {
-        Optional<Employee> delEmployee = employeeRepo.findById(id);
-        if (!delEmployee.isPresent())
-            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        employeeRepo.delete(delEmployee.get());
-        // after deleting check if it's done
-        Optional<Employee> employee = employeeRepo.findById(id);
-        if (employee.isPresent())
-            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            Optional<Employee> delEmployee = employeeRepo.findById(id);
+            if (!delEmployee.isPresent())
+                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+            employeeRepo.delete(delEmployee.get());
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_MODIFIED);
+        }
     }
 }

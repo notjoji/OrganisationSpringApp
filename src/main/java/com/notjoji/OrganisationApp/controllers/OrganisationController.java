@@ -10,6 +10,7 @@ import com.notjoji.OrganisationApp.repo.OrganisationRepo;
 
 import java.util.*;
 
+@CrossOrigin(origins = "http://localhost:8080")
 @RestController
 @RequestMapping("api/organisations")
 public class OrganisationController {
@@ -38,6 +39,13 @@ public class OrganisationController {
 
     @PostMapping("/add")
     public ResponseEntity<?> create(@RequestBody Organisation organisation) {
+        Long id = organisation.getBaseId();
+        if (id != null) {
+            Optional<Organisation> baseOrganisation = organisationRepo.findById(id);
+            if (!baseOrganisation.isPresent()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        }
         organisationRepo.save(organisation);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -47,6 +55,12 @@ public class OrganisationController {
         Optional<Organisation> updOrganisation = organisationRepo.findById(id);
         if (!updOrganisation.isPresent())
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        Long baseOrganisationId = organisation.getBaseId();
+        if (baseOrganisationId != null) {
+            Optional<Organisation> baseOrganisation = organisationRepo.findById(baseOrganisationId);
+            if (!baseOrganisation.isPresent() || baseOrganisationId.equals(id))
+                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+        }
         Organisation updated = updOrganisation.get();
         BeanUtils.copyProperties(organisation, updated, "id");
         organisationRepo.save(updated);
@@ -55,14 +69,14 @@ public class OrganisationController {
 
     @DeleteMapping("{id}")
     public ResponseEntity<?> delete(@PathVariable("id") Long id) {
-        Optional<Organisation> delOrganisation = organisationRepo.findById(id);
-        if (!delOrganisation.isPresent())
-            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        organisationRepo.delete(delOrganisation.get());
-        // after deleting check if it's done
-        Optional<Organisation> organisation = organisationRepo.findById(id);
-        if (organisation.isPresent())
-            return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            Optional<Organisation> delOrganisation = organisationRepo.findById(id);
+            if (!delOrganisation.isPresent())
+                return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
+            organisationRepo.delete(delOrganisation.get());
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_MODIFIED);
+        }
     }
 }
