@@ -39,7 +39,7 @@ public class EmployeeService {
 
     public boolean add(EmployeeDTO dto) {
         Optional<Employee> employee = employeeRepo.findByName(dto.getName());
-        if (employee.isPresent())
+        if (employee.isPresent() || dto.getOrganisationName() == null && dto.getSupervisorName() == null)
             return false;
         Optional<Organisation> organisation = organisationRepo.findByName(dto.getOrganisationName());
         Optional<Employee> supervisor = employeeRepo.findByName(dto.getSupervisorName());

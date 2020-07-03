@@ -1,3 +1,5 @@
+-- add these triggers and functions after generating tables
+
 create or replace function before_delete_employees()
 returns trigger language plpgsql as $$
 begin
@@ -63,3 +65,14 @@ end $$;
 create trigger after_insert_or_update_organisations
 after insert or update on organisations
 for each row execute procedure after_insert_or_update_organisations();
+
+-- add base inserts to tables
+
+insert into organisations (id, name, base_id, supervisor_id) values
+(nextval('organisation_seq'), <YOUR_ORGANISATION_NAME>, null, 2);
+
+insert into employees (id, name, organisation_id, supervisor_id) values
+(nextval('employee_seq'), <YOUR_EMPLOYEE_NAME>, 2, null);
+
+-- and it's ready to go!
+
